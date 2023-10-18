@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@lapo/asn1js": "^1.2.4",
+    "@noble/secp256k1": "^2.0.0",
+    "bs58check": "^3.0.1"
+  }
+}
