@@ -1,4 +1,6 @@
-## Tezos Consensus Signer on Amazon KMS in a Lambda Function
+# Tezos Consensus Signer on Amazon KMS in a Lambda Function
+
+In Beta - use at own risk.
 
 * 🏃 Fast
 * 🐣 Small
@@ -16,6 +18,8 @@ Security features:
 * only supports requests authenticated by a Tezos address (the baker's authorized key)
 * filters by magic byte: only signs consensus operations
 * prevents double signing and slashing by atomically storing a high watermark on DynamoDB
+
+Read more on the [Medium article introducing the project](https://midl-dev.medium.com/tezos-consensus-signing-with-aws-lambda-dynamodb-and-kms-d6e1da85dc62).
 
 ### How to install
 
