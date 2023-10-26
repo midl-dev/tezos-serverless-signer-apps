@@ -1,11 +1,11 @@
 ## Tezos Consensus Signer on Amazon KMS in a Lambda Function
 
-* Fast
-* Small
-* Cheap
-* Few dependencies
-* Easy to audit
-* No configuration knobs
+* 🏃 Fast
+* 🐣 Small
+* 💸 Cheap
+* 🖇️ Few dependencies
+* 🧐 Easy to audit
+* ⚙️ No configuration knobs
 
 This function can be deployed on AWS Lambda with a Node 18 runtime.
 
@@ -15,8 +15,10 @@ Security features:
 
 * only supports requests authenticated by a Tezos address (the baker's authorized key)
 * filters by magic byte: only signs consensus operations
-* prevents double signing and slashing by storing a high watermark on DynamoDB with Mutex
+* prevents double signing and slashing by atomically storing a high watermark on DynamoDB
 
 ### How to install
 
-Guide coming soon.
+* with Pulumi: [guide](docs/Pulumi.md)
+* with CloudFormation: coming soon
+* by hand: coming soon
