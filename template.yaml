@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tezos-consensus-kms-lambda
+
+  A Serverless Application to sign Tezos Consensus Messages on AWS.
+  Includes a KMS Key and DynamoDB High Watermark.
+
+
+Metadata:
+  Author: Nicolas Ochem - MIDL.dev
+  LastUpdated: 2023-11-02
+  Description: "An app to sign Tezos Consensus Messages on AWS with KMS and DynamoDB."
+  SpdxLicenseId: MIT
+  LicenseUrl: LICENSE
+  Labels: ['cryptocurrency', 'tezos', 'signing']
+  SemanticVersion: 0.2.0
+  SourceCodeUrl: https://github.com/oxheadalpha/tezos-kms-consensus-lambda
+
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: nodejs18.x
+
+Parameters:
+  BakerAuthorizedKey:
+    Type: String
+    Description: The authorized key for the signer. This must be a secp256k1 Tezos-encoded public key starting with sppk.
+
+Resources:
+  TezosConsensusKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: "KMS Key for Tezos Consensus"
+      KeyUsage: SIGN_VERIFY
+      KeySpec: ECC_SECG_P256K1
+      PendingWindowInDays: 7
+      Enabled: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Allow use of the key"
+            Effect: "Allow"
+            Principal:
+              AWS: !GetAtt ConsensusSignerRole.Arn
+            Action:
+              - "kms:Sign"
+              - "kms:GetPublicKey"
+            Resource: '*'
+
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: publicKeyHash
+          AttributeType: S
+        - AttributeName: opType
+          AttributeType: S
+      KeySchema:
+        - AttributeName: publicKeyHash
+          KeyType: HASH
+        - AttributeName: opType
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  ConsensusSignerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt DynamoDBTable.Arn
+              - Effect: Allow
+                Action:
+                  - kms:GetPublicKey
+                  - kms:Sign
+                Resource: !GetAtt TezosConsensusKey.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  ConfiguratorLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tezos-consensus-pubkey-getter/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Role: !GetAtt ConsensusSignerRole.Arn
+      Environment:
+        Variables:
+          KMS_KEY_ID: !GetAtt TezosConsensusKey.Arn
+  
+  SignerLambdaEnv:
+    Type: Custom::SignerLambdaEnv
+    Properties:
+      ServiceToken: !GetAtt ConfiguratorLambda.Arn
+
+  TezosConsensusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tezos-consensus-kms-lambda/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Role: !GetAtt ConsensusSignerRole.Arn
+      Environment:
+        Variables:
+          BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          KMS_KEY_ID: !GetAtt TezosConsensusKey.Arn
+          CONSENSUS_PUBLIC_KEY: !GetAtt SignerLambdaEnv.publicKey
+          CONSENSUS_PUBLIC_KEY_HASH: !GetAtt SignerLambdaEnv.publicKeyHash
+          SECRET_URL_PATH: !GetAtt SignerLambdaEnv.randomString
+
+  TezosConsensusLambdaUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt TezosConsensusLambda.Arn
+
+  TezosConsensusLambdaUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref TezosConsensusLambda
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  PublicKey:
+    Description: "Consensus Public Key"
+    Value: !GetAtt SignerLambdaEnv.publicKey
+
+  PublicKeyHash:
+    Description: "Consensus Public Key Hash"
+    Value: !GetAtt SignerLambdaEnv.publicKeyHash
+
+  SignerURL:
+    Description: "Signer Secret URL"
+    Value: !Sub "${TezosConsensusLambdaUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
