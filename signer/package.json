@@ -1,5 +1,5 @@
 {
-  "name": "tezos-kms-consensus-lambda",
+  "name": "tezos-kms-consensus-lambda-signer",
   "version": "0.2.0",
   "description": "A Consensus Operation Signer for the Tezos chain backed by AWS KMS",
   "main": "index.js",

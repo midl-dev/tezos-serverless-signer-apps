@@ -8,14 +8,16 @@ Description: >
 
 
 Metadata:
-  Author: Nicolas Ochem - MIDL.dev
-  LastUpdated: 2023-11-02
-  Description: "An app to sign Tezos Consensus Messages on AWS with KMS and DynamoDB."
-  SpdxLicenseId: MIT
-  LicenseUrl: LICENSE
-  Labels: ['cryptocurrency', 'tezos', 'signing']
-  SemanticVersion: 0.2.0
-  SourceCodeUrl: https://github.com/oxheadalpha/tezos-kms-consensus-lambda
+  AWS::ServerlessRepo::Application:
+    Name: tezos-consensus-kms-lambda
+    Author: nicolasochem
+    LastUpdated: 2023-11-02
+    Description: "An app to sign Tezos Consensus Messages on AWS with KMS and DynamoDB."
+    SpdxLicenseId: MIT
+    LicenseUrl: LICENSE
+    Labels: ['cryptocurrency', 'tezos', 'signing']
+    SemanticVersion: 0.2.0
+    SourceCodeUrl: https://github.com/oxheadalpha/tezos-kms-consensus-lambda
 
 Globals:
   Function:
@@ -30,7 +32,7 @@ Parameters:
 Resources:
   TezosConsensusKey:
     Type: AWS::KMS::Key
-    Properties: 
+    Properties:
       Description: "KMS Key for Tezos Consensus"
       KeyUsage: SIGN_VERIFY
       KeySpec: ECC_SECG_P256K1
@@ -39,6 +41,12 @@ Resources:
       KeyPolicy:
         Version: "2012-10-17"
         Statement:
+          - Sid: "Root account can manage the key"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: '*'
           - Sid: "Allow use of the key"
             Effect: "Allow"
             Principal:
@@ -46,6 +54,43 @@ Resources:
             Action:
               - "kms:Sign"
               - "kms:GetPublicKey"
+            Resource: '*'
+  
+  ConsensusSignerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  
+  ConsensusSignerPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles: [!Ref ConsensusSignerRole]
+      PolicyName: LambdaKMSDynamoDBLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt DynamoDBTable.Arn
+          - Effect: Allow
+            Action:
+              - kms:GetPublicKey
+              - kms:Sign
+            Resource: !GetAtt TezosConsensusKey.Arn
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
             Resource: '*'
 
   DynamoDBTable:
@@ -65,43 +110,10 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
 
-  ConsensusSignerRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: LambdaPermissions
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                  - dynamodb:UpdateItem
-                Resource: !GetAtt DynamoDBTable.Arn
-              - Effect: Allow
-                Action:
-                  - kms:GetPublicKey
-                  - kms:Sign
-                Resource: !GetAtt TezosConsensusKey.Arn
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: '*'
-
-  ConfiguratorLambda:
+  SignerConfigurator:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: tezos-consensus-pubkey-getter/
+      CodeUri: signer-configurator/
       Handler: index.handler
       Runtime: nodejs18.x
       Architectures:
@@ -114,12 +126,12 @@ Resources:
   SignerLambdaEnv:
     Type: Custom::SignerLambdaEnv
     Properties:
-      ServiceToken: !GetAtt ConfiguratorLambda.Arn
+      ServiceToken: !GetAtt SignerConfigurator.Arn
 
-  TezosConsensusLambda:
+  Signer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: tezos-consensus-kms-lambda/
+      CodeUri: signer/
       Handler: index.handler
       Runtime: nodejs18.x
       Architectures:
@@ -134,17 +146,17 @@ Resources:
           CONSENSUS_PUBLIC_KEY_HASH: !GetAtt SignerLambdaEnv.publicKeyHash
           SECRET_URL_PATH: !GetAtt SignerLambdaEnv.randomString
 
-  TezosConsensusLambdaUrl:
+  SignerUrl:
     Type: AWS::Lambda::Url
     Properties:
       AuthType: NONE
-      TargetFunctionArn: !GetAtt TezosConsensusLambda.Arn
+      TargetFunctionArn: !GetAtt Signer.Arn
 
-  TezosConsensusLambdaUrlPermission:
+  SignerUrlPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref TezosConsensusLambda
+      FunctionName: !Ref Signer
       Principal: "*"
       FunctionUrlAuthType: NONE
 
@@ -159,4 +171,4 @@ Outputs:
 
   SignerURL:
     Description: "Signer Secret URL"
-    Value: !Sub "${TezosConsensusLambdaUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
+    Value: !Sub "${SignerUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
