@@ -16,8 +16,8 @@ Metadata:
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE
     Labels: ['cryptocurrency', 'tezos', 'signing']
-    SemanticVersion: 0.2.0
-    SourceCodeUrl: https://github.com/oxheadalpha/tezos-kms-consensus-lambda
+    SemanticVersion: 0.3.0
+    SourceCodeUrl: https://github.com/midl-dev/tezos-consensus-kms-lambda
 
 Globals:
   Function:
@@ -146,11 +146,11 @@ Resources:
           CONSENSUS_PUBLIC_KEY_HASH: !GetAtt SignerLambdaEnv.publicKeyHash
           SECRET_URL_PATH: !GetAtt SignerLambdaEnv.randomString
 
-  SignerUrl:
-    Type: AWS::Lambda::Url
-    Properties:
-      AuthType: NONE
-      TargetFunctionArn: !GetAtt Signer.Arn
+  # SignerUrl:
+  #   Type: AWS::Lambda::Url
+  #   Properties:
+  #     AuthType: NONE
+  #     TargetFunctionArn: !GetAtt Signer.Arn
 
   SignerUrlPermission:
     Type: AWS::Lambda::Permission
@@ -169,6 +169,9 @@ Outputs:
     Description: "Consensus Public Key Hash"
     Value: !GetAtt SignerLambdaEnv.publicKeyHash
 
-  SignerURL:
-    Description: "Signer Secret URL"
-    Value: !Sub "${SignerUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
+  # SignerURL:
+  #   Description: "Signer Secret URL"
+  #   Value: !Sub "${SignerUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
+  SignerURLPath:
+    Description: "Signer Secret URL path (get the URL from lambda console)"
+    Value: !GetAtt SignerLambdaEnv.randomString

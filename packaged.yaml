@@ -18,8 +18,8 @@ Metadata:
     - cryptocurrency
     - tezos
     - signing
-    SemanticVersion: '0.2.0'
-    SourceCodeUrl: https://github.com/oxheadalpha/tezos-kms-consensus-lambda
+    SemanticVersion: '0.3.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-consensus-kms-lambda
 Globals:
   Function:
     Timeout: 3
@@ -190,16 +190,6 @@ Resources:
             - randomString
     Metadata:
       SamResourceId: Signer
-  SignerUrl:
-    Type: AWS::Lambda::Url
-    Properties:
-      AuthType: NONE
-      TargetFunctionArn:
-        Fn::GetAtt:
-        - Signer
-        - Arn
-    Metadata:
-      SamResourceId: SignerUrl
   SignerUrlPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -223,7 +213,9 @@ Outputs:
       Fn::GetAtt:
       - SignerLambdaEnv
       - publicKeyHash
-  SignerURL:
-    Description: Signer Secret URL
+  SignerURLPath:
+    Description: Signer Secret URL path (get the URL from lambda console)
     Value:
-      Fn::Sub: ${SignerUrl.FunctionUrl}${SignerLambdaEnv.randomString}
+      Fn::GetAtt:
+      - SignerLambdaEnv
+      - randomString
