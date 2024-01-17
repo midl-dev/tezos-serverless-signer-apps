@@ -1,7 +1,7 @@
 {
-  "name": "tezos-kms-consensus-lambda-signer",
+  "name": "tezos-taquito-signer",
   "version": "0.2.0",
-  "description": "A Consensus Operation Signer for the Tezos chain backed by AWS KMS",
+  "description": "A Tezos Remote Signer Lambda based on taquito",
   "main": "index.js",
   "repository": "https://github.com/midl-dev/tezos-consensus-kms-lambda",
   "author": "MIDLDEV OU",

@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-const { InMemorySigner } = require('@taquito/signer');
+import { InMemorySigner } from '@taquito/signer';
 // Mandatory Environment Variables
 
 // Environment variable for the secret key
@@ -36,61 +36,62 @@ const BAKER_AUTHORIZED_KEY = process.env.BAKER_AUTHORIZED_KEY;
 // of DDoS.
 const SECRET_URL_PATH = process.env.SECRET_URL_PATH;
 
-// Function to sign data
-const signData = async (data) => {
-  try {
-    const signer = await InMemorySigner.fromSecretKey(SECRET_KEY);
-    const { sig } = await signer.sign(data);
-    return sig;
-  } catch (error) {
-    console.error("Error signing data:", error);
-    throw error;
-  }
-};
-
-
 const handler = async (event) => {
   const httpMethod = event.requestContext.http.method;
   const path = event.rawPath;
 
   try {
-    if (httpMethod === 'POST' && path === `/${SECRET_URL_PATH}/keys/${CONSENSUS_PUBLIC_KEY_HASH}`) {
-      if (!event.body) {
-        const error = new Error('No message to sign in the request body');
-        error.code = 400;
-        throw error;
-      }
-
-      const parsedBody = JSON.parse(event.body);
-
-      try {
-        const signature = await signData(parsedBody.message);
-        console.log(`Signed message.`);
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ signature }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        };
-      } catch (error) {
-        console.error("Error in signing process:", error);
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ error: "Error in signing process" }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        };
-      }
+    if (httpMethod === 'GET' && path === `/${SECRET_URL_PATH}/authorized_keys`) {
+      //const authorizedPkh = tezosKMS.getPkh(BAKER_AUTHORIZED_KEY);
+      //return responses.success({ "authorized_keys": [authorizedPkh] });
+      return responses.success({});
     } else {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Not Found" }),
-        headers: {
-          'Content-Type': 'application/json'
+      const signer = await InMemorySigner.fromSecretKey(SECRET_KEY);
+      const publicKey = await signer.publicKey();
+      const publicKeyHash = await signer.publicKeyHash();
+      if (path === `/${SECRET_URL_PATH}/keys/${publicKeyHash}`) {
+        if (httpMethod === 'GET') {
+          return responses.success({ public_key: publicKey });
+        } else if (httpMethod === 'POST') {
+          if (!event.body) {
+            const error = new Error('No message to sign in the request body');
+            error.code = 400;
+            throw error;
+          }
+
+          const parsedBody = JSON.parse(event.body);
+
+          try {
+            const signature = await signer.sign(parsedBody);
+            console.log(`Signed message.`);
+
+            return {
+              statusCode: 200,
+              body: JSON.stringify({ signature: signature.prefixSig }),
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            };
+          } catch (error) {
+            console.error("Error in signing process:", error);
+            return {
+              statusCode: 500,
+              body: JSON.stringify({ error: "Error in signing process" }),
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            };
+          }
+        } else {
+          return {
+            statusCode: 404,
+            body: JSON.stringify({ error: "Not Found" }),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          };
         }
-      };
+      }
     }
   } catch (error) {
     console.error(error);
@@ -102,6 +103,23 @@ const handler = async (event) => {
       }
     };
   }
+};
+
+const responses = {
+  success: (body) => ({
+    statusCode: 200,
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }),
+  error: (message, statusCode = 500) => ({
+    statusCode,
+    body: JSON.stringify({ error: message }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
 };
 
 export { handler };
