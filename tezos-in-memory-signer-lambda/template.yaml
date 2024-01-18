@@ -3,31 +3,44 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   tezos-in-memory-signer-lambda
 
-  An in-memory signer for Tezos based on Taquito.
-  
 Globals:
   Function:
     Timeout: 3
     Runtime: nodejs18.x
-
-Parameters:
-  BakerAuthorizedKey:
-    Type: String
-    Description: The authorized key for the signer. This must be a Tezos-encoded public key.
-  SecretKey:
-    Type: String
-    Description: The secret key used for signing. This must be a Tezos-encoded private key.
-  SecretUrlPath:
-    Type: String
-    Description: The secret URL path to the signer.
 
 Resources:
   TezosApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
+
+  # Resource and method for /abc123/authorized_keys
+  AuthorizedKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !GetAtt TezosApi.RootResourceId
+      PathPart: authorized_keys
+
+  AuthorizedKeysMock:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref AuthorizedKeysResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: '{}'
+
+  # Lambda function with API event
   TaquitoSignerFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: taquito-signer/
       Handler: index.handler
@@ -35,31 +48,10 @@ Resources:
       Architectures:
         - x86_64
       Events:
-        AuthorizedKeysGet:
-          Type: Api
-          Properties:
-            RestApiId: !Ref TezosApi
-            Path: /abc123/authorized_keys
-            Method: get
-        KeysGet:
-          Type: Api
-          Properties:
-            RestApiId: !Ref TezosApi
-            Path: /abc123/keys/tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
-            Method: get
         KeysPost:
           Type: Api
           Properties:
             RestApiId: !Ref TezosApi
             Path: /abc123/keys/tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
             Method: post
-      Environment: # Environment variables configuration
-        Variables:
-          SECRET_KEY: !Ref SecretKey
-          BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
-          SECRET_URL_PATH: !Ref SecretUrlPath
 
-# Outputs:
-#   TaquitoSignerFunctionUrl:
-#     Description: "URL of the signer"
-#     Value: !GetAtt TaquitoSignerFunction.FunctionUrl
