@@ -22,6 +22,10 @@ Parameters:
     Description: The secret URL path to the signer.
 
 Resources:
+  TezosApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
   TaquitoSignerFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -30,19 +34,30 @@ Resources:
       Runtime: nodejs18.x
       Architectures:
         - x86_64
-      # Events:
-      #   HttpApi:
-      #     Type: Api
-      #     Properties:
-      #       Path: /sign
-      #       Method: post
+      Events:
+        AuthorizedKeysGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TezosApi
+            Path: /abc123/authorized_keys
+            Method: get
+        KeysGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TezosApi
+            Path: /abc123/keys/tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
+            Method: get
+        KeysPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TezosApi
+            Path: /abc123/keys/tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
+            Method: post
       Environment: # Environment variables configuration
         Variables:
           SECRET_KEY: !Ref SecretKey
           BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
           SECRET_URL_PATH: !Ref SecretUrlPath
-      FunctionUrlConfig:
-        AuthType: NONE
 
 # Outputs:
 #   TaquitoSignerFunctionUrl:
