@@ -19,6 +19,19 @@ Parameters:
     Type: String
     Description: The secret URL path to the signer.
 Resources:
+  TaquitoSignerConfigurator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: signer-configurator/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      FunctionUrlConfig:
+        AuthType: NONE
+
+  SignerLambdaEnv:
+    Type: Custom::SignerLambdaEnv
+    Properties:
+      ServiceToken: !GetAtt TaquitoSignerConfigurator.Arn
   TezosApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
