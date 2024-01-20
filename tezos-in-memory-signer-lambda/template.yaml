@@ -9,9 +9,6 @@ Globals:
     Runtime: nodejs18.x
 
 Parameters:
-  BakerAuthorizedKey:
-    Type: String
-    Description: The authorized key for the signer. This must be a Tezos-encoded public key.
   SecretKey:
     Type: String
     Description: The secret key used for signing. This must be a Tezos-encoded private key.
@@ -126,7 +123,6 @@ Resources:
       Environment: # Environment variables configuration
         Variables:
           SECRET_KEY: !Ref SecretKey
-          BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
           
   TaquitoSignerFunctionPermission:
     Type: AWS::Lambda::Permission
@@ -151,3 +147,12 @@ Resources:
       RestApiId: !Ref TezosApi
       DeploymentId: !Ref ApiGatewayDeployment
 
+Outputs:
+  SignerURL:
+    Description: "Secret Signer URL"
+    Value: 
+      !Sub
+        - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/prod/${RandomPath}/${PublicKeyHash}"
+        - ApiId: !Ref TezosApi
+          RandomPath: !GetAtt SignerLambdaEnv.randomString
+          PublicKeyHash: !GetAtt SignerLambdaEnv.publicKeyHash
