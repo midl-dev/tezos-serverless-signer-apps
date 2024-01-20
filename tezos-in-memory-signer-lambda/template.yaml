@@ -84,7 +84,7 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
             ResponseTemplates:
-              application/json: '{"publicKey": "edpkv5rSnqqQpUh8Zx3fkaH4EGQDSaUD2aPVxcsi2gtwZtYaThs5kV"}'
+              application/json: '{"public_key": "edpkv5rSnqqQpUh8Zx3fkaH4EGQDSaUD2aPVxcsi2gtwZtYaThs5kV"}'
       MethodResponses:
       - StatusCode: 200
         ResponseModels:
