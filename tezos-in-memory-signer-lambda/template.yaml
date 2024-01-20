@@ -96,7 +96,10 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
             ResponseTemplates:
-              application/json: '{"public_key": "edpkv5rSnqqQpUh8Zx3fkaH4EGQDSaUD2aPVxcsi2gtwZtYaThs5kV"}'
+              application/json:
+                !Sub
+                - '{"public_key": "${PublicKey}"}'
+                - PublicKey: !GetAtt SignerLambdaEnv.publicKey
       MethodResponses:
       - StatusCode: 200
         ResponseModels:
