@@ -60,6 +60,26 @@ Resources:
       ParentId: !Ref KeysResource
       PathPart: tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
 
+  SpecificKeyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref SpecificKeyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: '{"publicKey": "edpkv5rSnqqQpUh8Zx3fkaH4EGQDSaUD2aPVxcsi2gtwZtYaThs5kV"}'
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+
   SpecificKeyPostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
