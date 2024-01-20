@@ -27,7 +27,6 @@ Resources:
       RestApiId: !Ref TezosApi
       ParentId: !Ref Abc123Resource
       PathPart: authorized_keys
-
   AuthorizedKeysMock:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -43,7 +42,10 @@ Resources:
           - StatusCode: 200
             ResponseTemplates:
               application/json: '{}'
-
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
   KeysResource:
     Type: AWS::ApiGateway::Resource
     Properties:
