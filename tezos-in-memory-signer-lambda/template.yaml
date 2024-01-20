@@ -10,16 +10,22 @@ Globals:
 
 Resources:
   TezosApi:
-    Type: AWS::Serverless::Api
+    Type: AWS::ApiGateway::RestApi
     Properties:
-      StageName: prod
+      Name: TezosApi
 
-  # Resource and method for /abc123/authorized_keys
-  AuthorizedKeysResource:
+  Abc123Resource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref TezosApi
       ParentId: !GetAtt TezosApi.RootResourceId
+      PathPart: abc123
+
+  AuthorizedKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref Abc123Resource
       PathPart: authorized_keys
 
   AuthorizedKeysMock:
@@ -38,20 +44,52 @@ Resources:
             ResponseTemplates:
               application/json: '{}'
 
-  # Lambda function with API event
+  KeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref Abc123Resource
+      PathPart: keys
+
+  SpecificKeyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref KeysResource
+      PathPart: tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
+
+  SpecificKeyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref SpecificKeyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TaquitoSignerFunction.Arn}/invocations
+        IntegrationHttpMethod: POST
+
   TaquitoSignerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: taquito-signer/
       Handler: index.handler
       Runtime: nodejs18.x
-      Architectures:
-        - x86_64
-      Events:
-        KeysPost:
-          Type: Api
-          Properties:
-            RestApiId: !Ref TezosApi
-            Path: /abc123/keys/tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
-            Method: post
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - AuthorizedKeysMock
+      - SpecificKeyPostMethod
+    Properties:
+      RestApiId: !Ref TezosApi
+      Description: 'API deployment for tezos-in-memory-signer-lambda'
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: prod
+      RestApiId: !Ref TezosApi
+      DeploymentId: !Ref ApiGatewayDeployment
 
