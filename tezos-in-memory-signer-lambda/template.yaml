@@ -15,9 +15,6 @@ Parameters:
   SecretKey:
     Type: String
     Description: The secret key used for signing. This must be a Tezos-encoded private key.
-  SecretUrlPath:
-    Type: String
-    Description: The secret URL path to the signer.
 Resources:
   TaquitoSignerConfigurator:
     Type: AWS::Serverless::Function
@@ -25,30 +22,32 @@ Resources:
       CodeUri: signer-configurator/
       Handler: index.handler
       Runtime: nodejs18.x
-      FunctionUrlConfig:
-        AuthType: NONE
+      Environment:
+        Variables:
+          SECRET_KEY: !Ref SecretKey
 
   SignerLambdaEnv:
     Type: Custom::SignerLambdaEnv
     Properties:
       ServiceToken: !GetAtt TaquitoSignerConfigurator.Arn
+
   TezosApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: TezosApi
 
-  Abc123Resource:
+  RandomPathResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref TezosApi
       ParentId: !GetAtt TezosApi.RootResourceId
-      PathPart: abc123
+      PathPart: !GetAtt SignerLambdaEnv.randomString
 
   AuthorizedKeysResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref TezosApi
-      ParentId: !Ref Abc123Resource
+      ParentId: !Ref RandomPathResource
       PathPart: authorized_keys
   AuthorizedKeysMock:
     Type: AWS::ApiGateway::Method
@@ -73,7 +72,7 @@ Resources:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref TezosApi
-      ParentId: !Ref Abc123Resource
+      ParentId: !Ref RandomPathResource
       PathPart: keys
 
   SpecificKeyResource:
@@ -81,7 +80,7 @@ Resources:
     Properties:
       RestApiId: !Ref TezosApi
       ParentId: !Ref KeysResource
-      PathPart: tz1XfNWYxfKRskaEZxytFJ3WXagcb7XJ6g76
+      PathPart: !GetAtt SignerLambdaEnv.publicKeyHash
 
   SpecificKeyGetMethod:
     Type: AWS::ApiGateway::Method
@@ -125,9 +124,6 @@ Resources:
         Variables:
           SECRET_KEY: !Ref SecretKey
           BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
-      FunctionUrlConfig:
-        AuthType: NONE
-
           
   TaquitoSignerFunctionPermission:
     Type: AWS::Lambda::Permission

@@ -19,6 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+import { InMemorySigner } from '@taquito/signer';
 import { createHash } from 'crypto';
 import https from 'https';
 
@@ -82,25 +83,23 @@ const handler = async (event, context) => {
   const responseData = {};
 
   try {
-    // Check for CloudFormation RequestType
-    switch (event.RequestType) {
-      case 'Delete':
-      case 'Update':
-      case 'Create':
-        const [publicKeyHash, publicKey] = ["cul", "bite"]
-        responseData.publicKeyHash = publicKeyHash;
-        responseData.publicKey = publicKey;
-        const randomString = generateDeterministicRandomString(event.StackId, publicKey);
-        responseData.randomString = randomString;
-        await sendResponse(event, context, 'SUCCESS', responseData);
-        break;
-      default:
-        // Send fail response
-        await sendResponse(event, context, 'FAILED');
-        break;
-    }
+    // Assuming the private key is passed in the event
+    const secretKey = process.env.SECRET_KEY;
+
+    const signer = await InMemorySigner.fromSecretKey(secretKey);
+    const publicKey = await signer.publicKey();
+    const publicKeyHash = await signer.publicKeyHash();
+
+    responseData.publicKey = publicKey;
+    responseData.publicKeyHash = publicKeyHash;
+
+    // Generate a deterministic random string
+    const randomString = generateDeterministicRandomString(event.StackId, publicKey);
+    responseData.randomString = randomString;
+
+    await sendResponse(event, context, 'SUCCESS', responseData);
   } catch (error) {
-    console.log('An error occurred:', error);
+    console.error('An error occurred:', error);
     await sendResponse(event, context, 'FAILED');
   }
 };
