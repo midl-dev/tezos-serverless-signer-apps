@@ -12,6 +12,11 @@ Globals:
 #   SecretKey:
 #     Type: String
 #     Description: The secret key used for signing. This must be a Tezos-encoded private key.
+Parameters:
+  SecretArn:
+    Type: String
+    Description: Optional ARN of an existing secret key stored in Amazon Secrets Manager. Leave blank to create a new secret key.
+    Default: ""
 Resources:
   TaquitoSignerConfiguratorRole:
     Type: AWS::IAM::Role
@@ -48,9 +53,9 @@ Resources:
       Runtime: nodejs18.x
       Timeout: 15
       Role: !GetAtt TaquitoSignerConfiguratorRole.Arn
-      # Environment:
-      #   Variables:
-      #     SECRET_KEY: !Ref SecretKey
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref SecretArn
 
   SignerLambdaEnv:
     Type: Custom::SignerLambdaEnv

@@ -12,31 +12,40 @@ async function generateTezosKeys() {
 }
 
 async function getOrCreateSecret(event) {
-  const stackId = event.StackId.split(':').pop(); // Extract the stack ID
-  const secretName = `TezosSecretKey-${stackId}`; // Use stack ID in the secret name
-  console.log("getOrCreateSecret - Start with secret name:", secretName);
+  const providedSecretArn = process.env.SECRET_ARN;
+  let secretName;
+
+  if (providedSecretArn) {
+    console.log("Using provided secret ARN:", providedSecretArn);
+    secretName = providedSecretArn;
+  } else {
+    const stackId = event.StackId.split(':').pop(); // Extract the stack ID
+    secretName = `TezosSecretKey-${stackId}`; // Use stack ID in the secret name
+    console.log("No secret ARN provided. Using generated name:", secretName);
+  }
 
   try {
     const secretValue = await secretsManager.getSecretValue({ SecretId: secretName }).catch((error) => {
-      // If the secret does not exist, create it
-      if (error.name === 'ResourceNotFoundException') {
-        return null; // Indicate that the secret does not exist
+      if (!providedSecretArn && error.name === 'ResourceNotFoundException') {
+        return null; // Secret does not exist
       }
       throw error;
     });
 
     if (secretValue) {
-      console.log("Secret retrieved:", secretValue);
+      console.log("Secret retrieved");
       const secretKey = JSON.parse(secretValue.SecretString).secretKey;
-      return { signer: InMemorySigner.fromSecretKey(secretKey), secretArn: secretValue.ARN };
-    } else {
+      return { signer: await InMemorySigner.fromSecretKey(secretKey), secretArn: secretValue.ARN };
+    } else if (!providedSecretArn) {
       console.log("Generating new Tezos keys");
       const signer = await generateTezosKeys();
       const secretKey = await signer.secretKey();
       console.log("Creating secret in Secrets Manager:", secretName);
-      const response = await secretsManager.createSecret({ Name: secretName, SecretString: JSON.stringify({ secretKey: secretKey }) });
+      const response = await secretsManager.createSecret({ Name: secretName, SecretString: JSON.stringify({ secretKey }) });
       console.log("Secret created:", response.ARN);
       return { signer, secretArn: response.ARN };
+    } else {
+      throw new Error("Provided secret ARN does not exist and cannot be created.");
     }
   } catch (error) {
     console.error("Error in getOrCreateSecret:", error);
@@ -97,16 +106,20 @@ const handler = async (event, context) => {
   const responseData = {};
 
   try {
+    if (event.RequestType === 'Delete') {
+      // Handle the delete request
+      console.log("Delete request - no action needed");
+      await sendResponse(event, context, 'SUCCESS', {});
+      return;
+    }
+
+    // Handle create and update requests
     const { signer, secretArn } = await getOrCreateSecret(event);
     responseData.SecretArn = secretArn;
-
     const publicKey = await signer.publicKey();
     const publicKeyHash = await signer.publicKeyHash();
-
     responseData.publicKey = publicKey;
     responseData.publicKeyHash = publicKeyHash;
-
-    // Generate a deterministic random string
     const randomString = generateDeterministicRandomString(event.StackId, publicKey);
     responseData.randomString = randomString;
 
@@ -117,6 +130,7 @@ const handler = async (event, context) => {
     await sendResponse(event, context, 'FAILED', responseData);
   }
 };
+
 
 export { handler };
 
