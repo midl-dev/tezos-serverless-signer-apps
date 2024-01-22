@@ -6,7 +6,7 @@ const secretsManager = new SecretsManager();
 async function getSecret(secretArn) {
   const command = new GetSecretValueCommand({ SecretId: secretArn });
   const response = await secretsManager.send(command);
-  return response.SecretString;
+  return JSON.parse(response.SecretString).secretKey;
 }
 
 const handler = async (event) => {
