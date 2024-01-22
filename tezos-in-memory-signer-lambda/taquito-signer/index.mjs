@@ -1,19 +1,31 @@
 import { InMemorySigner } from '@taquito/signer';
+import { SecretsManager, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-const SECRET_KEY = process.env.SECRET_KEY;
+const secretsManager = new SecretsManager();
+
+async function getSecret(secretArn) {
+  const command = new GetSecretValueCommand({ SecretId: secretArn });
+  const response = await secretsManager.send(command);
+  return response.SecretString;
+}
 
 const handler = async (event) => {
   try {
-    // Assuming Lambda Proxy integration, the HTTP method is in event.httpMethod
+    // Assuming the ARN of the secret is stored in an environment variable
+    const secretArn = process.env.SECRET_ARN;
+
     if (event.httpMethod !== 'POST') {
       return responses.error("Method Not Allowed", 405);
     }
 
     if (!event.body) {
-      throw new Error('No message to sign in the request body', 400);
+      throw new Error('No message to sign in the request body');
     }
 
-    const signer = await InMemorySigner.fromSecretKey(SECRET_KEY);
+    // Retrieve the secret key from AWS Secrets Manager
+    const secretKey = await getSecret(secretArn);
+    const signer = await InMemorySigner.fromSecretKey(secretKey);
+
     const parsedBody = JSON.parse(event.body);
     const signature = await signer.sign(parsedBody);
     console.log(`Signed message.`);

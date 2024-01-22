@@ -8,20 +8,49 @@ Globals:
     Timeout: 3
     Runtime: nodejs18.x
 
-Parameters:
-  SecretKey:
-    Type: String
-    Description: The secret key used for signing. This must be a Tezos-encoded private key.
+# Parameters:
+#   SecretKey:
+#     Type: String
+#     Description: The secret key used for signing. This must be a Tezos-encoded private key.
 Resources:
+  TaquitoSignerConfiguratorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TaquitoSignerConfiguratorPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:CreateSecret
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 'arn:aws:logs:*:*:*'
   TaquitoSignerConfigurator:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: signer-configurator/
       Handler: index.handler
       Runtime: nodejs18.x
-      Environment:
-        Variables:
-          SECRET_KEY: !Ref SecretKey
+      Timeout: 15
+      Role: !GetAtt TaquitoSignerConfiguratorRole.Arn
+      # Environment:
+      #   Variables:
+      #     SECRET_KEY: !Ref SecretKey
 
   SignerLambdaEnv:
     Type: Custom::SignerLambdaEnv
@@ -114,15 +143,45 @@ Resources:
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TaquitoSignerFunction.Arn}/invocations
         IntegrationHttpMethod: POST
 
+  TaquitoSignerFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: 'arn:aws:logs:*:*:*'
+      Policies:
+        - PolicyName: TaquitoSignerFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !GetAtt SignerLambdaEnv.SecretArn  # Restrict to the specific secret's ARN
+
+
   TaquitoSignerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: taquito-signer/
       Handler: index.handler
       Runtime: nodejs18.x
+      Role: !GetAtt TaquitoSignerFunctionRole.Arn
       Environment: # Environment variables configuration
         Variables:
-          SECRET_KEY: !Ref SecretKey
+          SECRET_ARN: !GetAtt SignerLambdaEnv.SecretArn
+
           
   TaquitoSignerFunctionPermission:
     Type: AWS::Lambda::Permission

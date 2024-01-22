@@ -7,6 +7,8 @@
   "author": "MIDLDEV OU",
   "license": "MIT",
   "dependencies": {
-    "@taquito/signer": "^17.5.2"
+    "@aws-sdk/client-secrets-manager": "^3.496.0",
+    "@taquito/signer": "^17.5.2",
+    "bip39": "^3.1.0"
   }
 }
