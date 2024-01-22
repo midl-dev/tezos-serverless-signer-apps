@@ -154,12 +154,6 @@ Resources:
               Service:
                 - lambda.amazonaws.com
             Action: sts:AssumeRole
-          - Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-            Resource: 'arn:aws:logs:*:*:*'
       Policies:
         - PolicyName: TaquitoSignerFunctionPolicy
           PolicyDocument:
@@ -169,6 +163,12 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !GetAtt SignerLambdaEnv.SecretArn  # Restrict to the specific secret's ARN
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 'arn:aws:logs:*:*:*'
 
 
   TaquitoSignerFunction:
