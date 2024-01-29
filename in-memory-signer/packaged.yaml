@@ -1,0 +1,308 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'tezos-in-memory-signer-lambda
+
+  A Serverless Application to sign Tezos Operations on AWS.
+  Exposes the Tezos Remote Signer API.
+  Based on the Taquito Javascript library for Tezos.
+
+  '
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: tezos-in-memory-signer
+    Author: nicolasochem
+    LastUpdated: '2024-01-28'
+    Description: An app to sign Tezos Operations.
+    SpdxLicenseId: MIT
+    LicenseUrl: s3://tezos-consensus-kms-lambda/b9f7ccd279c5f1881715bae350dff0b5
+    Labels:
+    - cryptocurrency
+    - tezos
+    - signing
+    SemanticVersion: '0.3.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-consensus-kms-lambda
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: nodejs18.x
+Parameters:
+  SecretArn:
+    Type: String
+    Description: Optional ARN of an existing secret key stored in Amazon Secrets Manager.
+      Leave blank to create a new secret key.
+    Default: ''
+Resources:
+  TaquitoSignerConfiguratorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: TaquitoSignerConfiguratorPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            - secretsmanager:CreateSecret
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+    Metadata:
+      SamResourceId: TaquitoSignerConfiguratorRole
+  TaquitoSignerConfigurator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-3dtu1bkrdh5q/0d3e9e81b0237a39573d4bf1f5f561af
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 15
+      Role:
+        Fn::GetAtt:
+        - TaquitoSignerConfiguratorRole
+        - Arn
+      Environment:
+        Variables:
+          SECRET_ARN:
+            Ref: SecretArn
+    Metadata:
+      SamResourceId: TaquitoSignerConfigurator
+  SignerLambdaEnv:
+    Type: Custom::SignerLambdaEnv
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - TaquitoSignerConfigurator
+        - Arn
+    Metadata:
+      SamResourceId: SignerLambdaEnv
+  TezosApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: TezosApi
+    Metadata:
+      SamResourceId: TezosApi
+  RandomPathResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Fn::GetAtt:
+        - TezosApi
+        - RootResourceId
+      PathPart:
+        Fn::GetAtt:
+        - SignerLambdaEnv
+        - randomString
+    Metadata:
+      SamResourceId: RandomPathResource
+  AuthorizedKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: RandomPathResource
+      PathPart: authorized_keys
+    Metadata:
+      SamResourceId: AuthorizedKeysResource
+  AuthorizedKeysMock:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: AuthorizedKeysResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json: '{}'
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+    Metadata:
+      SamResourceId: AuthorizedKeysMock
+  KeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: RandomPathResource
+      PathPart: keys
+    Metadata:
+      SamResourceId: KeysResource
+  SpecificKeyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: KeysResource
+      PathPart:
+        Fn::GetAtt:
+        - SignerLambdaEnv
+        - publicKeyHash
+    Metadata:
+      SamResourceId: SpecificKeyResource
+  SpecificKeyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: SpecificKeyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json:
+              Fn::Sub:
+              - '{"public_key": "${PublicKey}"}'
+              - PublicKey:
+                  Fn::GetAtt:
+                  - SignerLambdaEnv
+                  - publicKey
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+    Metadata:
+      SamResourceId: SpecificKeyGetMethod
+  SpecificKeyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: SpecificKeyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TaquitoSignerFunction.Arn}/invocations
+        IntegrationHttpMethod: POST
+    Metadata:
+      SamResourceId: SpecificKeyPostMethod
+  TaquitoSignerFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: TaquitoSignerFunctionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::GetAtt:
+              - SignerLambdaEnv
+              - SecretArn
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+    Metadata:
+      SamResourceId: TaquitoSignerFunctionRole
+  TaquitoSignerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-3dtu1bkrdh5q/9b7b54f51b2f14615468ccbbcb35a4b5
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Role:
+        Fn::GetAtt:
+        - TaquitoSignerFunctionRole
+        - Arn
+      Environment:
+        Variables:
+          SECRET_ARN:
+            Fn::GetAtt:
+            - SignerLambdaEnv
+            - SecretArn
+    Metadata:
+      SamResourceId: TaquitoSignerFunction
+  TaquitoSignerFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - TaquitoSignerFunction
+        - Arn
+      Principal: apigateway.amazonaws.com
+    Metadata:
+      SamResourceId: TaquitoSignerFunctionPermission
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+    - AuthorizedKeysMock
+    - SpecificKeyPostMethod
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      Description: API deployment for tezos-in-memory-signer-lambda
+    Metadata:
+      SamResourceId: ApiGatewayDeployment
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: prod
+      RestApiId:
+        Ref: TezosApi
+      DeploymentId:
+        Ref: ApiGatewayDeployment
+    Metadata:
+      SamResourceId: ApiGatewayStage
+Outputs:
+  SignerURL:
+    Description: Secret Signer URL
+    Value:
+      Fn::Sub:
+      - https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/prod/${RandomPath}/${PublicKeyHash}
+      - ApiId:
+          Ref: TezosApi
+        RandomPath:
+          Fn::GetAtt:
+          - SignerLambdaEnv
+          - randomString
+        PublicKeyHash:
+          Fn::GetAtt:
+          - SignerLambdaEnv
+          - publicKeyHash
