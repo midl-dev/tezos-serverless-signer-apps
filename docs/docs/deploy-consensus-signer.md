@@ -16,7 +16,7 @@ You need:
 
 ## Create a Baker Authorized Key
 
-Your remote signer URL is publicly accessible. To protect it, we authenticate all requests with a key located on your baker.
+Your remote signer URL will be publicly accessible. To protect it, we authenticate all requests with a key located on your baker.
 
 This key must be a secp256k1 key (starting with `tz2`).
 
@@ -45,7 +45,7 @@ Your baker will send signature requests to the Serverless Function regularly, up
 
 For your baker to work reliably, it is important that the baker and the signer be in close geographical proximity.
 
-Therefore, you must pick the AWS region closest to you. In this guide, we use `us-east-2` (Ohio).
+Therefore, you must pick the AWS region closest to your baker. In this guide, we use `us-east-2` (Ohio).
 
 Log in to your AWS account and navigate to the [AWS Lambda Console](https://us-east-2.console.aws.amazon.com/lambda/home?region=us-east-2#/applications).
 
@@ -86,7 +86,7 @@ Retrieve all three values:
 * **PublicKeyHash**: the Consensus Public Key Hash.
 * **SignerURL**: the URL of your Remote Signer.
 
-You may test your signer URL by removing the public key hash from the URL and replacing it with `authorized_keys`:
+You may test your signer URL with `curl` by removing the public key hash from the URL and replacing it with `authorized_keys`:
 
 ```
 $ curl https://l1498fpieb.execute-api.us-east-2.amazonaws.com/prod/c28e79b248a8db9d0a4f7a33af2c5a3e/authorized_keys

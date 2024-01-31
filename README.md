@@ -4,7 +4,7 @@ In Beta - use at own risk.
 
 A suite of Serverless apps to sign Tezos Operations on AWS.
 
-Install with just one click, without any software to install or CLI interaction.
+Install from the AWS Web console with just a few clicks. No instances, no command-line interface.
 
 ## Useful Links
 
