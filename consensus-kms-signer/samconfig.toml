@@ -1,11 +1,10 @@
 version = 0.1
 [default.deploy.parameters]
-stack_name = "tezos-consensus-kms-lambda"
+stack_name = "tezos-consensus-kms-signer"
 resolve_s3 = true
-s3_prefix = "tezos-consensus-kms-lambda"
+s3_prefix = "tezos-consensus-kms-signer"
 region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "BakerAuthorizedKey=\"sppk7aPkbwNYzDDsAz3qPBJp5mTZqAMGmp8SwHUVpagh4LdtbtafJ5m\""
 image_repositories = []

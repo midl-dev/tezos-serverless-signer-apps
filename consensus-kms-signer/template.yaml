@@ -6,19 +6,6 @@ Description: >
   A Serverless Application to sign Tezos Consensus Messages on AWS.
   Includes a KMS Key and DynamoDB High Watermark.
 
-
-Metadata:
-  AWS::ServerlessRepo::Application:
-    Name: tezos-consensus-kms-lambda
-    Author: nicolasochem
-    LastUpdated: 2023-11-02
-    Description: "An app to sign Tezos Consensus Messages on AWS with KMS and DynamoDB."
-    SpdxLicenseId: MIT
-    LicenseUrl: LICENSE
-    Labels: ['cryptocurrency', 'tezos', 'signing']
-    SemanticVersion: 0.3.0
-    SourceCodeUrl: https://github.com/midl-dev/tezos-consensus-kms-lambda
-
 Globals:
   Function:
     Timeout: 3
@@ -27,8 +14,8 @@ Globals:
 Parameters:
   BakerAuthorizedKey:
     Type: String
-    Description: The authorized key for the signer. This must be a secp256k1 Tezos-encoded public key starting with sppk.
-
+    Description: The key authorized to sign. For MIDL.dev baking service, use the default value (sppk7adr...)
+    Default: sppk7adrpUjqdeS82eRdtDn8Zhmva2snKzj34PmHhtGimtJFbdD5eL2
 Resources:
   TezosConsensusKey:
     Type: AWS::KMS::Key
@@ -122,6 +109,7 @@ Resources:
       Environment:
         Variables:
           KMS_KEY_ID: !GetAtt TezosConsensusKey.Arn
+          BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
   
   SignerLambdaEnv:
     Type: Custom::SignerLambdaEnv
@@ -142,23 +130,120 @@ Resources:
           BAKER_AUTHORIZED_KEY: !Ref BakerAuthorizedKey
           DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
           KMS_KEY_ID: !GetAtt TezosConsensusKey.Arn
-          CONSENSUS_PUBLIC_KEY: !GetAtt SignerLambdaEnv.publicKey
           CONSENSUS_PUBLIC_KEY_HASH: !GetAtt SignerLambdaEnv.publicKeyHash
-          SECRET_URL_PATH: !GetAtt SignerLambdaEnv.randomString
 
-  # SignerUrl:
-  #   Type: AWS::Lambda::Url
-  #   Properties:
-  #     AuthType: NONE
-  #     TargetFunctionArn: !GetAtt Signer.Arn
-
-  SignerUrlPermission:
+  SignerFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      Action: lambda:InvokeFunctionUrl
-      FunctionName: !Ref Signer
-      Principal: "*"
-      FunctionUrlAuthType: NONE
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt Signer.Arn
+      Principal: apigateway.amazonaws.com
+
+  TezosApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: TezosApi
+
+  RandomPathResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !GetAtt TezosApi.RootResourceId
+      PathPart: !GetAtt SignerLambdaEnv.randomString
+
+  AuthorizedKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref RandomPathResource
+      PathPart: authorized_keys
+  AuthorizedKeysMock:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref AuthorizedKeysResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json:
+                !Sub
+                - '{"authorized_keys": ["${BakerAuthorizedKeyHash}"]}'
+                - BakerAuthorizedKeyHash: !GetAtt SignerLambdaEnv.bakerAuthorizedKeyHash
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+  KeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref RandomPathResource
+      PathPart: keys
+
+  SpecificKeyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref TezosApi
+      ParentId: !Ref KeysResource
+      PathPart: !GetAtt SignerLambdaEnv.publicKeyHash
+
+  SpecificKeyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref SpecificKeyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json:
+                !Sub
+                - '{"public_key": "${PublicKey}"}'
+                - PublicKey: !GetAtt SignerLambdaEnv.publicKey
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+
+  SpecificKeyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref TezosApi
+      ResourceId: !Ref SpecificKeyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Signer.Arn}/invocations
+        IntegrationHttpMethod: POST
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - AuthorizedKeysMock
+      - SpecificKeyPostMethod
+    Properties:
+      RestApiId: !Ref TezosApi
+      Description: 'API deployment for tezos-in-memory-signer-lambda'
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: prod
+      RestApiId: !Ref TezosApi
+      DeploymentId: !Ref ApiGatewayDeployment
+
 
 Outputs:
   PublicKey:
@@ -169,9 +254,11 @@ Outputs:
     Description: "Consensus Public Key Hash"
     Value: !GetAtt SignerLambdaEnv.publicKeyHash
 
-  # SignerURL:
-  #   Description: "Signer Secret URL"
-  #   Value: !Sub "${SignerUrl.FunctionUrl}${SignerLambdaEnv.randomString}"
-  SignerURLPath:
-    Description: "Signer Secret URL path (get the URL from lambda console)"
-    Value: !GetAtt SignerLambdaEnv.randomString
+  SignerURL:
+    Description: "Signer URL"
+    Value: 
+      !Sub
+        - "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/prod/${RandomPath}/${PublicKeyHash}"
+        - ApiId: !Ref TezosApi
+          RandomPath: !GetAtt SignerLambdaEnv.randomString
+          PublicKeyHash: !GetAtt SignerLambdaEnv.publicKeyHash

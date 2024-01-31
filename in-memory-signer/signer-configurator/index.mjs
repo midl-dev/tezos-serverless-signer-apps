@@ -1,3 +1,24 @@
+/*!
+ * Copyright (c) 2024 MIDLDEV OU
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 import { InMemorySigner } from '@taquito/signer';
 import bip39 from 'bip39';
 import https from 'https';
@@ -54,6 +75,7 @@ async function getOrCreateSecret(event) {
 }
 
 // Generate a random string deterministically based on the stack ID and pubkey
+// This is to add to the signer path, for added security.
 function generateDeterministicRandomString(stackId, publicKey) {
   const hash = createHash('sha256');
   hash.update(stackId);
@@ -131,6 +153,4 @@ const handler = async (event, context) => {
   }
 };
 
-
 export { handler };
-

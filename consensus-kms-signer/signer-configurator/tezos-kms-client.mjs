@@ -67,6 +67,18 @@ class Utils {
     return base58Check.encode(prefixedBytes);
   }
 
+  static base58CheckDecode(encoded, expectedPrefix) {
+    const decoded = base58Check.decode(encoded);
+    const slicedPrefix = decoded.slice(0, expectedPrefix.length);
+
+    if (!slicedPrefix.every((byte, index) => byte === expectedPrefix[index])) {
+      const errorMsg = `Unexpected Prefix for ${encoded}`;
+      throw new Error(errorMsg);
+    }
+
+    return Buffer.from(decoded.slice(expectedPrefix.length));
+  }
+
   static mergeBytes(a, b) {
     const merged = new Uint8Array(a.length + b.length);
     merged.set(a);
@@ -94,6 +106,12 @@ export default class TezosKmsClient {
       region,
     });
     this.kmsKeyId = kmsKeyId;
+  }
+
+  getPkh(publicKey) {
+    const publicKeyBytes = Utils.base58CheckDecode(publicKey, tezosSecp256k1Prefix.publicKey);
+    const publicKeyHash = blake2b(publicKeyBytes, { dkLen: PUBLIC_KEY_HASH_LENGTH });
+    return Utils.base58CheckEncode(publicKeyHash, tezosSecp256k1Prefix.publicKeyHash);
   }
 
   async getKmsKeys() {

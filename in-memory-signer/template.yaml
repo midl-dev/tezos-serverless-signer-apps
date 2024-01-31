@@ -8,10 +8,6 @@ Globals:
     Timeout: 3
     Runtime: nodejs18.x
 
-# Parameters:
-#   SecretKey:
-#     Type: String
-#     Description: The secret key used for signing. This must be a Tezos-encoded private key.
 Parameters:
   SecretArn:
     Type: String

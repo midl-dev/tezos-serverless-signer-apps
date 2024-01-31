@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2023 MIDLDEV OU
+ * Copyright (c) 2024 MIDLDEV OU
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,48 @@ import https from 'https';
 
 const KMS_KEY_ID = process.env.KMS_KEY_ID;
 const AWS_REGION = process.env.AWS_REGION;
+const BAKER_AUTHORIZED_KEY = process.env.BAKER_AUTHORIZED_KEY;
 const tezosKMS = new TezosKmsClient(KMS_KEY_ID, AWS_REGION);
+
+
+// Generate a random string deterministically based on the stack ID and pubkey
+// This is to add to the signer path, for added security.
+function generateDeterministicRandomString(stackId, publicKey) {
+  const hash = createHash('sha256');
+  hash.update(stackId);
+  hash.update(publicKey);
+  // Use only the first 16 bytes (32 hex characters)
+  return hash.digest('hex').substring(0, 32);
+}
+
+const handler = async (event, context) => {
+  console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+  const responseData = {};
+
+  try {
+    // Check for CloudFormation RequestType
+    switch (event.RequestType) {
+      case 'Delete':
+      case 'Update':
+      case 'Create':
+        const [publicKeyHash, publicKey] = await tezosKMS.getKmsKeys();
+        responseData.publicKeyHash = publicKeyHash;
+        responseData.publicKey = publicKey;
+        const randomString = generateDeterministicRandomString(event.StackId, publicKey);
+        responseData.randomString = randomString;
+        responseData.bakerAuthorizedKeyHash = tezosKMS.getPkh(BAKER_AUTHORIZED_KEY);
+        await sendResponse(event, context, 'SUCCESS', responseData);
+        break;
+      default:
+        // Send fail response
+        await sendResponse(event, context, 'FAILED');
+        break;
+    }
+  } catch (error) {
+    console.log('An error occurred:', error);
+    await sendResponse(event, context, 'FAILED');
+  }
+};
 
 // Function to send a response to CloudFormation
 function sendResponse(event, context, responseStatus, responseData) {
@@ -72,42 +113,5 @@ function sendResponse(event, context, responseStatus, responseData) {
     request.end();
   });
 }
-
-// Generate a random string deterministically based on the stack ID and pubkey
-function generateDeterministicRandomString(stackId, publicKey) {
-  const hash = createHash('sha256');
-  hash.update(stackId);
-  hash.update(publicKey);
-  // Use only the first 16 bytes (32 hex characters)
-  return hash.digest('hex').substring(0, 32);
-}
-
-const handler = async (event, context) => {
-  console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
-  const responseData = {};
-
-  try {
-    // Check for CloudFormation RequestType
-    switch (event.RequestType) {
-      case 'Delete':
-      case 'Update':
-      case 'Create':
-        const [publicKeyHash, publicKey] = await tezosKMS.getKmsKeys();
-        responseData.publicKeyHash = publicKeyHash;
-        responseData.publicKey = publicKey;
-        const randomString = generateDeterministicRandomString(event.StackId, publicKey);
-        responseData.randomString = randomString;
-        await sendResponse(event, context, 'SUCCESS', responseData);
-        break;
-      default:
-        // Send fail response
-        await sendResponse(event, context, 'FAILED');
-        break;
-    }
-  } catch (error) {
-    console.log('An error occurred:', error);
-    await sendResponse(event, context, 'FAILED');
-  }
-};
 
 export { handler };

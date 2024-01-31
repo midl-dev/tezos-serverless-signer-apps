@@ -27,7 +27,6 @@ import { blake2b } from '@noble/hashes/blake2b';
 
 const SIGNING_ALGORITHM = 'ECDSA_SHA_256';
 const DIGEST_LENGTH = 32;
-const PUBLIC_KEY_HASH_LENGTH = 20;
 
 const tezosSecp256k1Prefix = {
   publicKey: new Uint8Array([3, 254, 226, 86]),
@@ -86,13 +85,6 @@ export default class TezosKmsClient {
     });
     this.kmsKeyId = kmsKeyId;
   }
-
-  getPkh(publicKey) {
-    const publicKeyBytes = Utils.base58CheckDecode(publicKey, tezosSecp256k1Prefix.publicKey);
-    const publicKeyHash = blake2b(publicKeyBytes, { dkLen: PUBLIC_KEY_HASH_LENGTH });
-    return Utils.base58CheckEncode(publicKeyHash, tezosSecp256k1Prefix.publicKeyHash);
-  }
-
 
   checkQuerySig(publicKeyHash, hex, signature, bakerAuthorizedKey) {
     const publicKeyHashBytes = Utils.base58CheckDecode(publicKeyHash, tezosSecp256k1Prefix.publicKeyHash);
