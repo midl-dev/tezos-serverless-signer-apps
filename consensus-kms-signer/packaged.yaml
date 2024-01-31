@@ -13,13 +13,13 @@ Metadata:
     LastUpdated: '2024-01-28'
     Description: An app to sign Tezos Consensus Operations.
     SpdxLicenseId: MIT
-    ReadmeUrl: s3://tezos-serverless-signer-apps/d929844887ff88c7e21732d8ea6455ad
-    LicenseUrl: s3://tezos-serverless-signer-apps/b9f7ccd279c5f1881715bae350dff0b5
+    ReadmeUrl: s3://tezos-serverless-signer-apps/4e61f21bccfa4f4f63f158afc40d6eff
+    LicenseUrl: s3://tezos-serverless-signer-apps/b96299445ccc306d15b8ecc0af600786
     Labels:
     - cryptocurrency
     - tezos
     - signing
-    SemanticVersion: '0.4.0'
+    SemanticVersion: '0.5.0'
     SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
 Globals:
   Function:
@@ -130,7 +130,7 @@ Resources:
   SignerConfigurator:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tezos-serverless-signer-apps/b53603225e41b1cf9993a58ecf653ce5
+      CodeUri: s3://tezos-serverless-signer-apps/0236af57f855a00d4656a910833ddf94
       Handler: index.handler
       Runtime: nodejs18.x
       Architectures:
@@ -161,7 +161,7 @@ Resources:
   Signer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tezos-serverless-signer-apps/f1c17467869f96562554187b71d27080
+      CodeUri: s3://tezos-serverless-signer-apps/22bac7952c35226a6bd616f3b89d2ff5
       Handler: index.handler
       Runtime: nodejs18.x
       Architectures:

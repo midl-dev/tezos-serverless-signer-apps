@@ -10,13 +10,13 @@ Metadata:
     LastUpdated: '2024-01-28'
     Description: An app to sign Tezos Operations.
     SpdxLicenseId: MIT
-    ReadmeUrl: s3://tezos-serverless-signer-apps/0893e47372a2ab9c8de494eb10471d08
+    ReadmeUrl: s3://tezos-serverless-signer-apps/0cf4c01115177da06fea2d1b367488a9
     LicenseUrl: s3://tezos-serverless-signer-apps/b9f7ccd279c5f1881715bae350dff0b5
     Labels:
     - cryptocurrency
     - tezos
     - signing
-    SemanticVersion: '0.4.0'
+    SemanticVersion: '0.5.0'
     SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
 Globals:
   Function:
