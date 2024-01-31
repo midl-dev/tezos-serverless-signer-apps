@@ -1,10 +1,26 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  tezos-consensus-kms-lambda
+  tezos-consensus-kms-signer
 
   A Serverless Application to sign Tezos Consensus Messages on AWS.
   Includes a KMS Key and DynamoDB High Watermark.
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: tezos-consensus-kms-signer
+    Author: MIDL-dev
+    LastUpdated: '2024-01-28'
+    Description: An app to sign Tezos Consensus Operations.
+    SpdxLicenseId: MIT
+    ReadmeUrl: README.md
+    LicenseUrl: LICENSE
+    Labels:
+    - cryptocurrency
+    - tezos
+    - signing
+    SemanticVersion: '0.4.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
 
 Globals:
   Function:
@@ -16,7 +32,9 @@ Parameters:
     Type: String
     Description: The key authorized to sign. For MIDL.dev baking service, use the default value (sppk7adr...)
     Default: sppk7adrpUjqdeS82eRdtDn8Zhmva2snKzj34PmHhtGimtJFbdD5eL2
+
 Resources:
+
   TezosConsensusKey:
     Type: AWS::KMS::Key
     Properties:
@@ -179,6 +197,7 @@ Resources:
       - StatusCode: 200
         ResponseModels:
           application/json: 'Empty'
+
   KeysResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -235,7 +254,7 @@ Resources:
       - SpecificKeyPostMethod
     Properties:
       RestApiId: !Ref TezosApi
-      Description: 'API deployment for tezos-in-memory-signer-lambda'
+      Description: 'API deployment for tezos-consensus-kms-signer'
 
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
@@ -243,7 +262,6 @@ Resources:
       StageName: prod
       RestApiId: !Ref TezosApi
       DeploymentId: !Ref ApiGatewayDeployment
-
 
 Outputs:
   PublicKey:

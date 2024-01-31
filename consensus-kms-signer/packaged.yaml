@@ -1,0 +1,376 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'tezos-consensus-kms-signer
+
+  A Serverless Application to sign Tezos Consensus Messages on AWS. Includes a KMS
+  Key and DynamoDB High Watermark.
+
+  '
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: tezos-consensus-kms-signer
+    Author: MIDL-dev
+    LastUpdated: '2024-01-28'
+    Description: An app to sign Tezos Consensus Operations.
+    SpdxLicenseId: MIT
+    ReadmeUrl: s3://tezos-serverless-signer-apps/d929844887ff88c7e21732d8ea6455ad
+    LicenseUrl: s3://tezos-serverless-signer-apps/b9f7ccd279c5f1881715bae350dff0b5
+    Labels:
+    - cryptocurrency
+    - tezos
+    - signing
+    SemanticVersion: '0.4.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
+Globals:
+  Function:
+    Timeout: 3
+    Runtime: nodejs18.x
+Parameters:
+  BakerAuthorizedKey:
+    Type: String
+    Description: The key authorized to sign. For MIDL.dev baking service, use the
+      default value (sppk7adr...)
+    Default: sppk7adrpUjqdeS82eRdtDn8Zhmva2snKzj34PmHhtGimtJFbdD5eL2
+Resources:
+  TezosConsensusKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for Tezos Consensus
+      KeyUsage: SIGN_VERIFY
+      KeySpec: ECC_SECG_P256K1
+      PendingWindowInDays: 7
+      Enabled: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: Root account can manage the key
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Sub: arn:aws:iam::${AWS::AccountId}:root
+          Action: kms:*
+          Resource: '*'
+        - Sid: Allow use of the key
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::GetAtt:
+              - ConsensusSignerRole
+              - Arn
+          Action:
+          - kms:Sign
+          - kms:GetPublicKey
+          Resource: '*'
+    Metadata:
+      SamResourceId: TezosConsensusKey
+  ConsensusSignerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+    Metadata:
+      SamResourceId: ConsensusSignerRole
+  ConsensusSignerPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+      - Ref: ConsensusSignerRole
+      PolicyName: LambdaKMSDynamoDBLogsPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          Resource:
+            Fn::GetAtt:
+            - DynamoDBTable
+            - Arn
+        - Effect: Allow
+          Action:
+          - kms:GetPublicKey
+          - kms:Sign
+          Resource:
+            Fn::GetAtt:
+            - TezosConsensusKey
+            - Arn
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource: '*'
+    Metadata:
+      SamResourceId: ConsensusSignerPolicy
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: publicKeyHash
+        AttributeType: S
+      - AttributeName: opType
+        AttributeType: S
+      KeySchema:
+      - AttributeName: publicKeyHash
+        KeyType: HASH
+      - AttributeName: opType
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+    Metadata:
+      SamResourceId: DynamoDBTable
+  SignerConfigurator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://tezos-serverless-signer-apps/b53603225e41b1cf9993a58ecf653ce5
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Role:
+        Fn::GetAtt:
+        - ConsensusSignerRole
+        - Arn
+      Environment:
+        Variables:
+          KMS_KEY_ID:
+            Fn::GetAtt:
+            - TezosConsensusKey
+            - Arn
+          BAKER_AUTHORIZED_KEY:
+            Ref: BakerAuthorizedKey
+    Metadata:
+      SamResourceId: SignerConfigurator
+  SignerLambdaEnv:
+    Type: Custom::SignerLambdaEnv
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - SignerConfigurator
+        - Arn
+    Metadata:
+      SamResourceId: SignerLambdaEnv
+  Signer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://tezos-serverless-signer-apps/f1c17467869f96562554187b71d27080
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Role:
+        Fn::GetAtt:
+        - ConsensusSignerRole
+        - Arn
+      Environment:
+        Variables:
+          BAKER_AUTHORIZED_KEY:
+            Ref: BakerAuthorizedKey
+          DYNAMODB_TABLE_NAME:
+            Ref: DynamoDBTable
+          KMS_KEY_ID:
+            Fn::GetAtt:
+            - TezosConsensusKey
+            - Arn
+          CONSENSUS_PUBLIC_KEY_HASH:
+            Fn::GetAtt:
+            - SignerLambdaEnv
+            - publicKeyHash
+    Metadata:
+      SamResourceId: Signer
+  SignerFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - Signer
+        - Arn
+      Principal: apigateway.amazonaws.com
+    Metadata:
+      SamResourceId: SignerFunctionPermission
+  TezosApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: TezosApi
+    Metadata:
+      SamResourceId: TezosApi
+  RandomPathResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Fn::GetAtt:
+        - TezosApi
+        - RootResourceId
+      PathPart:
+        Fn::GetAtt:
+        - SignerLambdaEnv
+        - randomString
+    Metadata:
+      SamResourceId: RandomPathResource
+  AuthorizedKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: RandomPathResource
+      PathPart: authorized_keys
+    Metadata:
+      SamResourceId: AuthorizedKeysResource
+  AuthorizedKeysMock:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: AuthorizedKeysResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json:
+              Fn::Sub:
+              - '{"authorized_keys": ["${BakerAuthorizedKeyHash}"]}'
+              - BakerAuthorizedKeyHash:
+                  Fn::GetAtt:
+                  - SignerLambdaEnv
+                  - bakerAuthorizedKeyHash
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+    Metadata:
+      SamResourceId: AuthorizedKeysMock
+  KeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: RandomPathResource
+      PathPart: keys
+    Metadata:
+      SamResourceId: KeysResource
+  SpecificKeyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ParentId:
+        Ref: KeysResource
+      PathPart:
+        Fn::GetAtt:
+        - SignerLambdaEnv
+        - publicKeyHash
+    Metadata:
+      SamResourceId: SpecificKeyResource
+  SpecificKeyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: SpecificKeyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json:
+              Fn::Sub:
+              - '{"public_key": "${PublicKey}"}'
+              - PublicKey:
+                  Fn::GetAtt:
+                  - SignerLambdaEnv
+                  - publicKey
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+    Metadata:
+      SamResourceId: SpecificKeyGetMethod
+  SpecificKeyPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      ResourceId:
+        Ref: SpecificKeyResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Signer.Arn}/invocations
+        IntegrationHttpMethod: POST
+    Metadata:
+      SamResourceId: SpecificKeyPostMethod
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+    - AuthorizedKeysMock
+    - SpecificKeyPostMethod
+    Properties:
+      RestApiId:
+        Ref: TezosApi
+      Description: API deployment for tezos-consensus-kms-signer
+    Metadata:
+      SamResourceId: ApiGatewayDeployment
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: prod
+      RestApiId:
+        Ref: TezosApi
+      DeploymentId:
+        Ref: ApiGatewayDeployment
+    Metadata:
+      SamResourceId: ApiGatewayStage
+Outputs:
+  PublicKey:
+    Description: Consensus Public Key
+    Value:
+      Fn::GetAtt:
+      - SignerLambdaEnv
+      - publicKey
+  PublicKeyHash:
+    Description: Consensus Public Key Hash
+    Value:
+      Fn::GetAtt:
+      - SignerLambdaEnv
+      - publicKeyHash
+  SignerURL:
+    Description: Signer URL
+    Value:
+      Fn::Sub:
+      - https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/prod/${RandomPath}/${PublicKeyHash}
+      - ApiId:
+          Ref: TezosApi
+        RandomPath:
+          Fn::GetAtt:
+          - SignerLambdaEnv
+          - randomString
+        PublicKeyHash:
+          Fn::GetAtt:
+          - SignerLambdaEnv
+          - publicKeyHash

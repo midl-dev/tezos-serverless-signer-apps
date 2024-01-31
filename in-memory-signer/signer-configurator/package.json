@@ -1,9 +1,9 @@
 {
   "name": "tezos-signer-configurator",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "A lambda to get the tezos public key and hash from taquito signer, meant to be used once during config",
   "main": "index.js",
-  "repository": "https://github.com/midl-dev/tezos-consensus-kms-lambda",
+  "repository": "https://github.com/midl-dev/tezos-serverless-signer-apps",
   "author": "MIDLDEV OU",
   "license": "MIT",
   "dependencies": {

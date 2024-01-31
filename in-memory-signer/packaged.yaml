@@ -2,25 +2,22 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'tezos-in-memory-signer-lambda
 
-  A Serverless Application to sign Tezos Operations on AWS.
-  Exposes the Tezos Remote Signer API.
-  Based on the Taquito Javascript library for Tezos.
-
   '
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: tezos-in-memory-signer
-    Author: nicolasochem
+    Author: MIDL-dev
     LastUpdated: '2024-01-28'
     Description: An app to sign Tezos Operations.
     SpdxLicenseId: MIT
-    LicenseUrl: s3://tezos-consensus-kms-lambda/b9f7ccd279c5f1881715bae350dff0b5
+    ReadmeUrl: s3://tezos-serverless-signer-apps/0893e47372a2ab9c8de494eb10471d08
+    LicenseUrl: s3://tezos-serverless-signer-apps/b9f7ccd279c5f1881715bae350dff0b5
     Labels:
     - cryptocurrency
     - tezos
     - signing
-    SemanticVersion: '0.3.0'
-    SourceCodeUrl: https://github.com/midl-dev/tezos-consensus-kms-lambda
+    SemanticVersion: '0.4.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
 Globals:
   Function:
     Timeout: 3
@@ -64,7 +61,7 @@ Resources:
   TaquitoSignerConfigurator:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-3dtu1bkrdh5q/0d3e9e81b0237a39573d4bf1f5f561af
+      CodeUri: s3://tezos-serverless-signer-apps/ccf633a0d98a43dbca66297fbadf76a4
       Handler: index.handler
       Runtime: nodejs18.x
       Timeout: 15
@@ -243,7 +240,7 @@ Resources:
   TaquitoSignerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-3dtu1bkrdh5q/9b7b54f51b2f14615468ccbbcb35a4b5
+      CodeUri: s3://tezos-serverless-signer-apps/00b907d1e2d84baa03501e92d82c0747
       Handler: index.handler
       Runtime: nodejs18.x
       Role:

@@ -9,9 +9,7 @@ In Beta - use at own risk.
 * 🧐 Easy to audit
 * ⚙️ No configuration knobs
 
-This function can be deployed on AWS Serverless.
-
-It does one thing and does it well: sign Tezos consensus messages from Amazon Key Management System (KMS). The KMS key is meant to be used as consensus key only.
+This application does one thing and does it well: sign Tezos consensus messages from Amazon Key Management System (KMS). The KMS key is meant to be used as consensus key only.
 
 Security features:
 
@@ -23,10 +21,8 @@ Read more on the [Medium article introducing the project](https://midl-dev.mediu
 
 ### How to install
 
-Deploy from [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/us-east-2/030073751340/tezos-consensus-kms-lambda).
+Deploy from [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/us-east-2/030073751340/tezos-consensus-kms-signer).
 
 # Brought to you by MIDL.dev
-
-<img src="midl-dev-logo.png" alt="MIDL.dev" height="100"/>
 
 We can help you deploy and manage a complete Tezos baking operation. [Hire us](https://midl.dev/tezos).

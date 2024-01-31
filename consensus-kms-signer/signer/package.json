@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "A Consensus Operation Signer for the Tezos chain backed by AWS KMS",
   "main": "index.js",
-  "repository": "https://github.com/midl-dev/tezos-consensus-kms-lambda",
+  "repository": "https://github.com/midl-dev/tezos-serverless-signer-apps",
   "author": "MIDLDEV OU",
   "license": "MIT",
   "dependencies": {

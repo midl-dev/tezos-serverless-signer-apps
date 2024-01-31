@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2024 MIDLDEV OU
+ * Copyright (c) 2023-2024 MIDLDEV OU
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +18,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ */
+
+/*!
+ * The purpose of this lambda function is to populate the environment
+ * for the lambda that actually does the signing:
+ * * calculate the public key of the KMS signer to configure the mock URLs
+ * * calculate the pkh of the authorized key
+ * * generate a random path for the app's URL
  */
 import TezosKmsClient from './tezos-kms-client.mjs';
 import { createHash } from 'crypto';

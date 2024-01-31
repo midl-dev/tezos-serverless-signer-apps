@@ -3,6 +3,22 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   tezos-in-memory-signer-lambda
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: tezos-in-memory-signer
+    Author: MIDL-dev
+    LastUpdated: '2024-01-28'
+    Description: An app to sign Tezos Operations.
+    SpdxLicenseId: MIT
+    ReadmeUrl: README.md
+    LicenseUrl: LICENSE
+    Labels:
+    - cryptocurrency
+    - tezos
+    - signing
+    SemanticVersion: '0.4.0'
+    SourceCodeUrl: https://github.com/midl-dev/tezos-serverless-signer-apps
+
 Globals:
   Function:
     Timeout: 3
