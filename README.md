@@ -30,3 +30,9 @@ The baking setup might be in another account, another region or on-prem.
 These Serverless Apps are available in Amazon's Serverless Application Repository.
 
 Install with just one click, without any software to install or CLI interaction.
+
+# Brought to you by MIDL.dev
+
+<img src="midl-dev-logo.png" alt="MIDL.dev" height="100"/>
+
+We can help you deploy and manage a complete Tezos baking operation. [Hire us](https://midl.dev/tezos).
