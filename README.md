@@ -1,5 +1,7 @@
 # Tezos Serverless Signer Apps
 
+In Beta - use at own risk.
+
 A suite of Serverless apps to sign Tezos Operations on AWS.
 
 | | In-Memory Signer | Consensus KMS Signer |
@@ -18,6 +20,8 @@ You may deploy a Tezos baker with:
 * an In-Memory Signer for payouts
 
 This approach leverages the reliability and security of AWS for signing operations.
+
+Read more on the [Medium article introducing the project](https://midl-dev.medium.com/tezos-consensus-signing-with-aws-lambda-dynamodb-and-kms-d6e1da85dc62).
 
 The baking setup might be in another account, another region or on-prem.
 
