@@ -1,4 +1,4 @@
-# Tezos Consensus Signer on Amazon KMS in a Lambda Function
+# Tezos Consensus Signer on Amazon KMS
 
 In Beta - use at own risk.
 

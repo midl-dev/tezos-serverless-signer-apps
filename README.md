@@ -9,10 +9,19 @@ Install with just one click, without any software to install or CLI interaction.
 | | [In-Memory Signer](in-memory-signer/) | [Consensus KMS Signer](consensus-kms-signer/) |
 | - | - | - |
 | Purpose | Sign any operation, for example Tezos Baker Payout Operations | Sign Consensus Messages Only |
-| Security | Medium | High |
+| Security | <span style="color: orange;">Medium</span> | <span style="color: green;">High</span> |
 | Key import/export | Yes | No |
-| Lines of code (including dependencies) | | |
+| Lines of code (including dependencies) | <span style="color: green;">18,685</span> | <span style="color: orange;">402,070</span> |
 | Tezos Supported Key Types | `tz1`, `tz2`, `tz3`, `tz4` | `tz2` only |
+<!-- Line of code calculation:
+nochem@peck ~/workspace/tezos-serverless-signer-apps () $ (find in-memory-signer/taquito-signer in-memory-signer/taquito-signer/node_modules -type f \( -name "*.js" -o -name "*.mjs" \) | xargs cat) | wc -l
+402070
+nochem@peck ~/workspace/tezos-serverless-signer-apps () $ (find consensus-kms-signer/signer -type f \( -name "*.js" -o -name "*.mjs" \) -exec cat {} +; find consensus-kms-signer/signer/node_modules/@noble/curves -type f \( -name "secp256k1.js" -o -name "secp256k1.js.map" \) -exec cat {} +; find consensus-kms-signer/signer/node_modules/@noble/hashes -type f \( -name "blake2b.js" -o -name "blake2b.js.map" \) -exec cat {} +) | wc -l
+18685
+nochem@peck ~/workspace/tezos-serverless-signer-apps () $
+
+-->
+
 
 ### A viable solution for Tezos Bakers
 

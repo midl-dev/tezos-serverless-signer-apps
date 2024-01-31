@@ -10,7 +10,7 @@ This Application leverages [Tezos Taquito](https://tezostaquito.io) to implement
 
 The private key is stored in Amazon Secret Manager and can be imported and exported.
 
-It is pretty rudimentary and does not offer any filtering. However, for consensus operations, we offer another Serverless Application, [Tezos-consensus-kms-signer](https://us-east-2.console.aws.amazon.com/lambda/home?region=us-east-2#/create/app?applicationId=arn:aws:serverlessrepo:us-east-2:030073751340:applications/tezos-consensus-kms-signer)
+It is pretty rudimentary and does not offer any filtering. However, for consensus operations, we offer another Serverless Application, [Tezos-consensus-kms-signer](https://us-east-2.console.aws.amazon.com/lambda/home?region=us-east-2#/create/app?applicationId=arn:aws:serverlessrepo:us-east-2:030073751340:applications/tezos-consensus-kms-signer).
 
 ### How to install
 
