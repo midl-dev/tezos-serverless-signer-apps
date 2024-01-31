@@ -1,6 +1,6 @@
 {
   "name": "tezos-kms-consensus-lambda-signer",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "A Consensus Operation Signer for the Tezos chain backed by AWS KMS",
   "main": "index.js",
   "repository": "https://github.com/midl-dev/tezos-serverless-signer-apps",
