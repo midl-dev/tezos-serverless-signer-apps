@@ -54,4 +54,10 @@ At the activation cycle of your consensus key, the existing baker process (set t
 
 Therefore you need to start a new baker, in parallel to your existing baker, baking for the consensus key.
 
+```
+octez-baker-<proto> run with local node ~/.tezos-node acme-consensus --liquidity-baking-toggle-vote pass
+```
+
+Replace the proto with actual protocol, `acme-consensus` with your baker alias, and add any commands you might be using on the other baker.
+
 This is **similar to a Tezos protocol upgrade**. Therefore, you might run two baker processes in parallel: one for the baking key and one for the consensus key. The baking operations will switch seamlessly.
