@@ -1,12 +1,32 @@
+/*!
+ * Copyright (c) 2023 MIDLDEV OU
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 import { KMS } from "@aws-sdk/client-kms";
 import base58Check from 'bs58check';
-import * as secp256k1 from '@noble/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1';
 import { blake2b } from '@noble/hashes/blake2b';
 
 
 const SIGNING_ALGORITHM = 'ECDSA_SHA_256';
 const DIGEST_LENGTH = 32;
-const PUBLIC_KEY_HASH_LENGTH = 20;
 
 const tezosSecp256k1Prefix = {
   publicKey: new Uint8Array([3, 254, 226, 86]),
@@ -20,57 +40,7 @@ const MAGIC_BYTES = {
   0x13: 'Attestation'
 };
 
-let asn1;
-
-async function loadASN1() {
-  const asn1Module = await import('@lapo/asn1js');
-  asn1 = asn1Module.default;
-  asn1.prototype.toHexStringContent = function() {
-    const hex = this.stream.hexDump(this.posContent(), this.posEnd(), true);
-    return hex.startsWith('00') ? hex.slice(2) : hex;
-  };
-}
-
-loadASN1().catch(error => console.error('Error loading ASN1:', error));
-
-
 class Utils {
-  static compressKey(uncompressed) {
-    const uncompressedKeySize = 65;
-    if (uncompressed.length !== uncompressedKeySize) {
-      throw new Error('Invalid length for uncompressed key');
-    }
-    const firstByte = uncompressed[0];
-    if (firstByte !== 4) {
-      throw new Error('Invalid compression byte');
-    }
-    const lastByte = uncompressed[64];
-    const magicByte = lastByte % 2 === 0 ? 2 : 3;
-    const xBytes = uncompressed.slice(1, 33);
-    return this.mergeBytes(new Uint8Array([magicByte]), xBytes);
-  }
-
-  static derSignatureToRaw(derSignature) {
-    const decodedSignature = asn1.decode(derSignature);
-    const rHex = decodedSignature.sub[0].toHexStringContent();
-    const sHex = decodedSignature.sub[1].toHexStringContent();
-
-    // Pad r and s with leading zeros if they are less than 64 characters long
-    const rPadded = rHex.padStart(64, '0');
-    const sPadded = sHex.padStart(64, '0');
-
-    // Normalize the s value if necessary
-    let sBigInt = BigInt(`0x${sPadded}`);
-    if (sBigInt > secp256k1.CURVE.n / 2n) {
-      sBigInt = secp256k1.CURVE.n - sBigInt;
-    }
-
-    // Concatenate the raw bytes of r and s
-    const rawSignature = Buffer.from(rPadded + sBigInt.toString(16).padStart(64, '0'), 'hex');
-
-    return rawSignature;
-  }
-
   static base58CheckEncode(bytes, prefix) {
     const prefixedBytes = this.mergeBytes(prefix, bytes);
     return base58Check.encode(prefixedBytes);
@@ -81,14 +51,7 @@ class Utils {
     const slicedPrefix = decoded.slice(0, expectedPrefix.length);
 
     if (!slicedPrefix.every((byte, index) => byte === expectedPrefix[index])) {
-      const errorMsg = [
-        'Invalid prefix. Expected',
-        Buffer.from(expectedPrefix).toString('hex'),
-        'for a',
-        Buffer.from(decoded).toString('base64'),
-        'encoded string. Only Tezos keys of type secp256k1 are supported.'
-      ].join(' ');
-
+      const errorMsg = `Unexpected Prefix for ${encoded}`;
       throw new Error(errorMsg);
     }
 
@@ -115,38 +78,12 @@ class Utils {
   }
 }
 
-
 export default class TezosKmsClient {
   constructor(kmsKeyId, region) {
     this.kms = new KMS({
       region,
     });
     this.kmsKeyId = kmsKeyId;
-  }
-
-  getPkh(publicKey) {
-    const publicKeyBytes = Utils.base58CheckDecode(publicKey, tezosSecp256k1Prefix.publicKey);
-    const publicKeyHash = blake2b(publicKeyBytes, { dkLen: PUBLIC_KEY_HASH_LENGTH });
-    return Utils.base58CheckEncode(publicKeyHash, tezosSecp256k1Prefix.publicKeyHash);
-  }
-
-  async getKmsKeys() {
-    const publicKeyResponse = await this.kms.getPublicKey({
-      KeyId: this.kmsKeyId,
-    });
-    const publicKeyDer = publicKeyResponse.PublicKey;
-    if (publicKeyDer === undefined) {
-      throw new Error("Couldn't retrieve key from AWS KMS");
-    }
-    const decodedPublicKey = asn1.decode(publicKeyDer);
-    const publicKeyHex = decodedPublicKey.sub[1].toHexStringContent();
-    const uncompressedPublicKeyBytes = Utils.hexToBytes(publicKeyHex);
-    const publicKeyBytes = Utils.compressKey(uncompressedPublicKeyBytes);
-    const publicKeyHashBytes = blake2b(publicKeyBytes, { dkLen: PUBLIC_KEY_HASH_LENGTH });
-    return [
-      Utils.base58CheckEncode(publicKeyHashBytes, tezosSecp256k1Prefix.publicKeyHash),
-      Utils.base58CheckEncode(publicKeyBytes, tezosSecp256k1Prefix.publicKey)
-    ];
   }
 
   checkQuerySig(publicKeyHash, hex, signature, bakerAuthorizedKey) {
@@ -207,19 +144,23 @@ export default class TezosKmsClient {
 
   async signOperation(hex) {
     const digest = blake2b(Utils.hexToBytes(hex), { dkLen: DIGEST_LENGTH });
+
     const params = {
       KeyId: this.kmsKeyId,
       Message: digest,
       SigningAlgorithm: SIGNING_ALGORITHM,
       MessageType: 'DIGEST',
     };
+
     const { Signature: derSignature } = await this.kms.sign(params);
+
     if (!(derSignature instanceof Uint8Array)) {
       throw new Error('Unexpected response from KMS');
     }
 
-    const signature = Utils.derSignatureToRaw(derSignature);
-    return Utils.base58CheckEncode(Buffer.from(signature), tezosSecp256k1Prefix.signature);
+    const signature = secp256k1.Signature.fromDER(Buffer.from(derSignature));
+    return Utils.base58CheckEncode(signature.normalizeS().toCompactRawBytes(), tezosSecp256k1Prefix.signature);
+
   }
 
 }

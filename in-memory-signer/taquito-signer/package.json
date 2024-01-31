@@ -1,0 +1,13 @@
+{
+  "name": "tezos-taquito-signer",
+  "version": "0.2.0",
+  "description": "A Tezos Remote Signer Lambda based on taquito",
+  "main": "index.js",
+  "repository": "https://github.com/midl-dev/tezos-consensus-kms-lambda",
+  "author": "MIDLDEV OU",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.496.0",
+    "@taquito/signer": "^17.5.2"
+  }
+}

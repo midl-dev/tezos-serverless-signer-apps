@@ -1,28 +1,32 @@
-# Tezos Consensus Signer on Amazon KMS in a Lambda Function
+# Tezos Serverless Signer Apps
 
 In Beta - use at own risk.
 
-* 🏃 Fast
-* 🐣 Small
-* 💸 Cheap
-* 🖇️ Few dependencies
-* 🧐 Easy to audit
-* ⚙️ No configuration knobs
+A suite of Serverless apps to sign Tezos Operations on AWS.
 
-This function can be deployed on AWS Lambda with a Node 18 runtime.
+| | In-Memory Signer | Consensus KMS Signer |
+| - | - | - |
+| Purpose | Sign any operation, for example Tezos Baker Payout Operations | Sign Consensus Messages Only |
+| Security | Medium | High |
+| Key import/export | Yes | No |
+| Lines of code (including dependencies) | | |
+| Tezos Supported Key Types | `tz1`, `tz2`, `tz3`, `tz4` | `tz2` only |
 
-It does one thing and does it well: sign Tezos consensus messages from Amazon Key Management System (KMS). The KMS key is meant to be used as consensus key only.
+### A viable solution for Tezos Bakers
 
-Security features:
+You may deploy a Tezos baker with:
 
-* only supports requests authenticated by a Tezos address (the baker's authorized key)
-* filters by magic byte: only signs consensus operations
-* prevents double signing and slashing by atomically storing a high watermark on DynamoDB
+* a Consensus KMS signer as consensus key
+* an In-Memory Signer for payouts
+
+This approach leverages the reliability and security of AWS for signing operations.
 
 Read more on the [Medium article introducing the project](https://midl-dev.medium.com/tezos-consensus-signing-with-aws-lambda-dynamodb-and-kms-d6e1da85dc62).
 
-### How to install
+The baking setup might be in another account, another region or on-prem.
 
-* with Pulumi: [guide](docs/Pulumi.md)
-* with CloudFormation: coming soon
-* by hand: coming soon
+### Ease of deployment
+
+These Serverless Apps are available in Amazon's Serverless Application Repository.
+
+Install with just one click, without any software to install or CLI interaction.

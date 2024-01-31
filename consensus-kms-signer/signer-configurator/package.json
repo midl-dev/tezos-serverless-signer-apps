@@ -1,0 +1,14 @@
+{
+  "name": "tezos-kms-consensus-lambda-signer-configurator",
+  "version": "0.2.0",
+  "description": "A lambda to get the tezos public key and hash from kms, meant to be used once during config",
+  "main": "index.js",
+  "repository": "https://github.com/midl-dev/tezos-consensus-kms-lambda",
+  "author": "MIDLDEV OU",
+  "license": "MIT",
+  "dependencies": {
+    "@lapo/asn1js": "^1.2.4",
+    "@noble/secp256k1": "^2.0.0",
+    "bs58check": "^3.0.1"
+  }
+}
