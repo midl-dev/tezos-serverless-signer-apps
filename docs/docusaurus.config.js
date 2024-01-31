@@ -7,8 +7,8 @@ const config = {
   favicon: 'img/favicon.ico',
   url: 'https://midl-dev.github.io/',
   baseUrl: '/tezos-serverless-signer-apps/',
-  organizationName: 'facebook', // Update this to your GitHub org/user name.
-  projectName: 'docusaurus', // Update this to your repo name.
+  organizationName: 'MIDL.dev', // Update this to your GitHub org/user name.
+  projectName: 'tezos-serverless-signer-apps', // Update this to your repo name.
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   i18n: {
@@ -39,8 +39,8 @@ const config = {
     navbar: {
       title: 'Tezos Serverless Signer Apps',
       logo: {
-        alt: 'My Site Logo',
-        src: 'img/logo.svg',
+        alt: 'MIDL.dev Logo',
+        src: 'img/logo.png',
       },
       items: [
         // Remove or comment out the blog link and any other unnecessary items
@@ -49,10 +49,10 @@ const config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Docs',
         },
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/midl-dev/tezos-serverless-signer-apps',
           label: 'GitHub',
           position: 'right',
         },
@@ -66,8 +66,8 @@ const config = {
           title: 'Docs',
           items: [
             {
-              label: 'Tutorial',
-              to: '/docs/intro',
+              label: 'Docs',
+              to: '/',
             },
           ],
         },
