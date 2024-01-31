@@ -36,6 +36,8 @@ Public Key: sppk7b9Vxiryxtz6k26NHZsCCZGLa1hKMCgMsSrdxHeGBeHHvkUAmfe
 
 This public key, starting with `sppk`, must be passed to the serverless app during creation. Then, the app will know that the signature requests come from your baker.
 
+Read more about Authorized Keys in the [Octez documentation](https://tezos.gitlab.io/user/key-management.html#secure-the-connection).
+
 ## Pick a Region
 
 

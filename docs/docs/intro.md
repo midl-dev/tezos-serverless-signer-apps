@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # Tezos Signer Apps
 
-by [MIDL.dev](https://midl.dev)
+Brought to you by [MIDL.dev](https://midl.dev), a Tezos infrastructure company.
 
 In order to switch your baking setup to KMS signing, please follow the below guides in order:
 

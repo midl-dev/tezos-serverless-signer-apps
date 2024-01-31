@@ -49,7 +49,8 @@ const config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Docs',
+          label: 'Go to Serverless App on AWS',
+          href: "https://serverlessrepo.aws.amazon.com/applications/us-east-2/030073751340/tezos-consensus-kms-signer"
         },
         {
           href: 'https://github.com/midl-dev/tezos-serverless-signer-apps',
