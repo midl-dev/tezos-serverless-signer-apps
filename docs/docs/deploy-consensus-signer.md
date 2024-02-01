@@ -90,9 +90,11 @@ You may test your signer URL with `curl` by removing the public key hash from th
 
 ```
 $ curl https://l1498fpieb.execute-api.us-east-2.amazonaws.com/prod/c28e79b248a8db9d0a4f7a33af2c5a3e/authorized_keys
-{"authorized_keys": ["tz2QMsPySFa7DzQx9CWygur3gjrNHuWjpQw4"]}
 ```
 
 You should see the public key hash of your authorized key in the response.
+```
+{"authorized_keys": ["tz2QMsPySFa7DzQx9CWygur3gjrNHuWjpQw4"]}
+```
 
 You may now proceed to the next step - [register a consensus key](register-consensus-key) for your baker.

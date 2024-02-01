@@ -37,7 +37,7 @@ Tezos address added: tz2E3CrMygbvk5wggB3J6XWZvY6HfzQyzZD5
 Then, with the Ledger connected and the Wallet app open, issue the command:
 
 ```
-octez-client register consensus key for acme-bakery to acme-consensus
+octez-client set consensus key for acme-bakery to acme-consensus
 ```
 
 Replace `acme-bakery` with your baker alias.
