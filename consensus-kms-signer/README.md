@@ -23,6 +23,8 @@ Read more on the [Medium article introducing the project](https://midl-dev.mediu
 
 Deploy from [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/us-east-2/030073751340/tezos-consensus-kms-signer).
 
-# Brought to you by MIDL.dev
+For detailed instructions, see: [how to switch your Tezos Baker to a Cloud KMS Setup](https://midl-dev.github.io/tezos-serverless-signer-apps/).
+
+# Brought to you by [MIDL.dev](https://midl.dev)
 
 We can help you deploy and manage a complete Tezos baking operation. [Hire us](https://midl.dev/tezos).

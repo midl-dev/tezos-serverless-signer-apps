@@ -224,6 +224,14 @@ Resources:
       DeploymentId: !Ref ApiGatewayDeployment
 
 Outputs:
+  PublicKey:
+    Description: "Signer Public Key"
+    Value: !GetAtt SignerLambdaEnv.publicKey
+
+  PublicKeyHash:
+    Description: "Signer Public Key Hash"
+    Value: !GetAtt SignerLambdaEnv.publicKeyHash
+
   SignerURL:
     Description: "Secret Signer URL"
     Value: 

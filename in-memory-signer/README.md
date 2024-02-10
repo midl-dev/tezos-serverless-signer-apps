@@ -16,6 +16,6 @@ It is pretty rudimentary and does not offer any filtering. However, for consensu
 
 Deploy from the [AWS Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/us-east-2/030073751340/tezos-in-memory-signer).
 
-# Brought to you by MIDL.dev
+# Brought to you by [MIDL.dev](https://midl.dev)
 
 We can help you deploy and manage a complete Tezos baking operation. [Hire us](https://midl.dev/tezos).
