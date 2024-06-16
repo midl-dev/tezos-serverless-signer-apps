@@ -24,7 +24,7 @@ At the previous step, you retrieved the Remote Signer URL of the Consensus Key f
 Now, on your baker, import it (replace with the URL from your AWS account):
 
 ```
-octez-client import secret key acme-consensus \
+octez-client --endpoint https://rpc.tzbeta.net import secret key acme-consensus \
   https://xxxxxxxxxx.execute-api.us-east-2.amazonaws.com/prod/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/tz2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -37,7 +37,7 @@ Tezos address added: tz2E3CrMygbvk5wggB3J6XWZvY6HfzQyzZD5
 Then, with the Ledger connected and the Wallet app open, issue the command:
 
 ```
-octez-client set consensus key for acme-bakery to acme-consensus
+octez-client --endpoint https://rpc.tzbeta.net set consensus key for acme-bakery to acme-consensus
 ```
 
 Replace `acme-bakery` with your baker alias.
