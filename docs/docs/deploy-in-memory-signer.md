@@ -66,7 +66,7 @@ You may test your signer URL with `curl` by removing the public key hash from th
 $ curl https://l1498fpieb.execute-api.us-east-2.amazonaws.com/prod/c28e79b248a8db9d0a4f7a33af2c5a3e/authorized_keys
 ```
 
-You should see the public key hash of your authorized key in the response.
+You should see the empty set in response:
 ```
 {}
 ```
