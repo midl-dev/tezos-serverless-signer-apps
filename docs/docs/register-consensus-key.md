@@ -50,9 +50,9 @@ You may check that your consensus key was registered properly on the [TzKT Conse
 
 ## Start the consensus key baker process
 
-At the activation cycle of your consensus key, the existing baker process (set to `bake for` your baker address) will no longer get any rights.
+At the activation cycle of your consensus key, the existing baker process (set to `bake for` your baker address) will no longer bake or attest anything.
 
-Therefore you need to start a new baker, in parallel to your existing baker, baking for the consensus key.
+Therefore you need to start a new baker process, in parallel to your existing baker process, baking for the consensus key.
 
 ```
 octez-baker-<proto> run with local node ~/.tezos-node acme-consensus --liquidity-baking-toggle-vote pass
