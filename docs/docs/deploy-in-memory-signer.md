@@ -26,18 +26,22 @@ You need:
 
 If you already have a payout account set up, you may import it into Amazon Secrets Manager:
 
-* go to [AWS Secrets Manager]
+* go to [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) console
 * on the top right, select the proper region
 * select "Store a new secret"
 * as "Secret Type", pick "Other type of secret"
 * under "Key/Value pairs", enter `secretKey` in the left text field (key)
 * in the right text field, enter your secret key. If tz1, it should start with `edsk...`. Omit `unencrypted:`.
-* leave "Encrpytion Key" unchanged as `AWS/secretsmanager`
+* leave "Encrpytion Key" unchanged as `aws/secretsmanager`
 * in the next screen, under "Secret Name", enter "Acme-Bakery-Payout-Key" (replace with your bakery name)
 * leave the default selected in the next 2 screens
 * finally, when your secret is created, select it and copy the secret ARN.
 
-The ARN should look as: `arn:aws:secretsmanager:us-east-2:01234678901:secret:Acme-Bakery-Payout-Key-GWko9y`
+The ARN should look as:
+
+```
+arn:aws:secretsmanager:us-east-2:01234678901:secret:Acme-Bakery-Payout-Key-GWko9y
+```
 
 ## Install the tezos-in-memory-signer app
 
